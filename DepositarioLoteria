@@ -1,0 +1,98 @@
+function myFunction() {
+    //definimos los documentos de plantilla base y el contador de posicion
+    var documentoPlantilla = "IDdelDocumentoORiginal";
+    var hojaDatos = "IDdelaFuenteDeDatos";
+    var directorioDestino = "IDDirectorioDestino";
+    //definimos donde empezamos
+    var inicio = 2;
+    //y hasta donde tenemos celdas
+    var fin = 37;
+
+    var rangoDatos = SpreadsheetApp.openById(hojaDatos).getRange("A" + inicio + ":K" + fin);
+    var origenDatos = rangoDatos.getValues();
+    for (i in origenDatos) {
+        //cargamos el timestamp que usaremos para firmar
+        var timeStamp = Utilities.formatDate(new Date(), "GMT", "dd-MM-yyyy' 'HH:mm:ss");
+
+        var fila = origenDatos[i];
+        var nombre = fila[4];
+        var sexo = fila[5];
+        var email = fila[3];
+        var DNI = fila[6];
+        var decimo = fila[7];
+        var formaDePago = fila[2];
+        var enviado = fila[0];
+        var pagado = fila[10];
+        var posicion = fila[1] + 1;
+        var prenombre = timeStamp + nombre + sexo + email + decimo + formaDePago;
+        var signature = nombre + "-" + Utilities.computeHmacSha256Signature(prenombre, "ClaveDeFirma").toString().replace(/\,/g, "");
+
+        if (enviado==false&&pagado==true){
+        
+            guardamosFirma(hojaDatos, posicion, signature, timeStamp);
+            guardamosDocumento(documentoPlantilla, signature, timeStamp, directorioDestino, nombre, email, DNI, decimo, formaDePago);
+
+        }
+
+        //fin de Bucle
+
+
+    }
+
+
+
+}
+
+function guardamosFirma(hojaDatos, posicion, signature, timeStamp) {
+    var hoja = SpreadsheetApp.openById(hojaDatos);
+
+    hoja.getRange("J" + posicion).setValue(signature);
+    hoja.getRange("I" + posicion).setValue(timeStamp);
+    hoja.getRange("A" + posicion).setValue(true);
+    Logger.log("Escribimos en " + posicion + signature)
+
+    return true;
+
+}
+
+
+
+
+function guardamosDocumento(documentoPlantilla, signature, timeStamp, directorioDestino, nombre, email, DNI, decimo, formaDePago) {
+    //hacemos copia de la plantilla
+    //colocamos
+    var destino = DriveApp.getFolderById(directorioDestino);
+    var origen = DriveApp.getFileById(documentoPlantilla);
+    var documento = origen.makeCopy(signature, destino);
+    var copia = DocumentApp.openById(documento.getId());
+
+    var cuerpo = copia.getBody();
+    cuerpo.replaceText("__nombre", nombre);
+    cuerpo.replaceText("__email", email);
+    cuerpo.replaceText("__decimo", decimo);
+    cuerpo.replaceText("__formadepago", formaDePago);
+    cuerpo.replaceText("__firma", signature);
+    cuerpo.replaceText("__fecha", timeStamp);
+    
+    return true;
+
+}
+
+
+//esta funcion no funciona ni se usa porque no he conseguido aun generar el PDF al vuelo 18-12-2016
+function enviamosMail(destinatario, sexo, nombre, adjunto) {
+
+    var cuerpo = "Estimad" + sexo + ": <br>" + nombre +
+        "adjunto encontrarás el documento en el que declaro que hago de depositario de tu décimo de lotería para este 2016";
+    MailApp.sendEmail({
+        to: destinatario,
+        subject: "Documento Depositario Loteria Marketineo 2016",
+        htmlBody: cuerpo,
+        attachment:
+
+            adjunto
+
+    });
+
+
+}
