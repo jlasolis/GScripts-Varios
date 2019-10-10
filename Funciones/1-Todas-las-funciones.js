@@ -10,7 +10,7 @@ UTMFacebook : devuelve la concatenacion de la URL dada con las UTMs para el etiq
 
 function Acortar(url){
 url='http://tinyurl.com/api-create.php?url='+url;
-var response = UrlFetchApp.fetch(url,{muteHttpExceptions:true});
+var response = UrlFetchApp.fetch(url,{muteHttpExceptions:true,followRedirects: false});
 return response.getContentText()
 }
 
