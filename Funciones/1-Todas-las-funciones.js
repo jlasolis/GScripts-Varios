@@ -4,7 +4,7 @@ Funciones personalizadas útiles para SEM
 Acortar : devuelve URL acortada en TinyURL
 HTTPCodigo : Devuelve el Código HTTP (200, 404) de una URL
 UTMFacebook : devuelve la concatenacion de la URL dada con las UTMs para el etiquetado automático en Facebook
-
+linkURL : devuelve la cadena y el link de un hiperenlace
 */
 
 
