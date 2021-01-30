@@ -1,0 +1,73 @@
+var BAD_CODES = [404,500,302,301,503];
+var TO = ['mail@example.com'];
+
+function main() {
+
+    var accountIterator = MccApp.accounts()
+        .withCondition("Impressions > 10")
+        .forDateRange("YESTERDAY") //TODAY, YESTERDAY, LAST_7_DAYS, THIS_WEEK_SUN_TODAY, LAST_WEEK, LAST_14_DAYS, LAST_30_DAYS, LAST_BUSINESS_WEEK, LAST_WEEK_SUN_SAT, THIS_MONTH, LAST_MONTH, ALL_TIME
+        .orderBy("Impressions", "ASC");
+    accountIterator.executeInParallel("process", "done");
+}
+
+function process() {
+  var dia = Utilities.formatDate(new Date(),AdWordsApp.currentAccount().getTimeZone(),'dd/MM/yyyy');
+  var currentAccount = AdWordsApp.currentAccount();
+  var account_name = AdWordsApp.currentAccount().getName();
+  var SUBJECT = "ALERT: Revisión de Status de URL de ADS en "+account_name+" ("+dia+")";
+  var HTTP_OPTIONS = {'muteHttpExceptions': true, 'followRedirects': false};
+  var iter = AdWordsApp.ads().withCondition("Status = 'ENABLED'").withCondition("AdGroupStatus = 'ENABLED'").withCondition("CampaignStatus = 'ENABLED'").get();
+  var already_checked = {};
+  var bad_entities = [];
+  while(iter.hasNext()) {
+    var entity = iter.next();
+    if(entity.urls().getFinalUrl() == null) { continue; }
+    var url = entity.urls().getFinalUrl();
+    if(url.indexOf('{') >= 0) {
+      url = url.replace(/\{[0-9a-zA-Z]+\}/g,'');
+    }
+    if(already_checked[url]) { continue; }
+    var response_code;
+    var new_url;
+    var header;
+    var new_location;
+    try {
+      response_code = UrlFetchApp.fetch(url, HTTP_OPTIONS).getResponseCode();
+      new_url =  UrlFetchApp.fetch(url, HTTP_OPTIONS);
+      header = new_url.getHeaders()
+      new_location = header['Location'];
+    } catch(e) {
+      "";
+    }
+    if(BAD_CODES.indexOf(response_code) >= 0) {
+      bad_entities.push({e : entity, code : response_code, new_url : new_location});
+    }
+    already_checked[url] = true;
+  }
+  var longitud = bad_entities.length;
+  if(bad_entities.length > 0) {
+    var email_body = "Hay "+longitud+" urls con algún tipo de código de error:\n\n";
+    for(var i in bad_entities) {
+      email_body += _formatResults(bad_entities[i],"\n");
+    }
+    for(var i in TO) {
+      MailApp.sendEmail(TO[i], SUBJECT, email_body);
+    }
+  }
+  return "";
+}
+
+function _formatResults(entity,SEP) {
+  var e = entity.e;
+    return ["Status Code: "+ entity.code,
+            "Old URL: "+ e.urls().getFinalUrl(),
+            "New URL: "+entity.new_url,
+            "AdGroup: " +e.getAdGroup().getName(),
+            "Campaign: " +e.getCampaign().getName()
+           ].join(SEP)+"\n-------------------------------------------"+"\n\n";
+}
+
+function done(results){
+  var dia = Utilities.formatDate(new Date(),AdWordsApp.currentAccount().getTimeZone(),'dd/MM/yyyy');
+  MailApp.sendEmail(TO, "[MCC CMO] > [Status OK - "+results.length+"] - ALERT: Revisión de Status de URL de ADS - "+dia, "");
+}
