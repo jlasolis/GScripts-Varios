@@ -1,0 +1,123 @@
+/*
+
+Este Script revisa las cuentas a nivel MCC que han tenido impresiones en los últimos 7 días
+
+Con esas cuentas comprueba que tengan actividad en las últimas 6 horas (configurable)
+y envía un email de notificación.
+
+
+*/
+
+var EMAIL_NOTIFICACION = "jorge@clicaonline.com";
+var HORAS_A_COMPROBAR = 6;
+var METRICA ="Impressions";
+
+var DEBUG = 0;
+
+Date.prototype.yyyymmdd = function() {
+    var yyyy = this.getFullYear().toString();
+    var mm = (this.getMonth() + 1).toString();
+    var dd = this.getDate().toString();
+    return yyyy + (mm[1] ? mm : "0" + mm[0]) + (dd[1] ? dd : "0" + dd[0]);
+};
+
+function getDateRangeYesterdayToToday() {
+    var currentDate = new Date();
+
+    var tempDate = new Date();
+    tempDate.setDate(tempDate.getDate() - 1);
+
+    var yesterdayDate = tempDate;
+
+    return yesterdayDate.yyyymmdd() + "," + currentDate.yyyymmdd();
+}
+
+function sendEmailNotifications(emailAddresses, subject, body, emailType) {
+
+    if (emailType.toLowerCase().indexOf("warning") != -1) {
+        var finalSubject = "[AVISO] " + subject + " - " + AdWordsApp.currentAccount().getName() + " (" + AdWordsApp.currentAccount().getCustomerId() + ")"
+    } else if (emailType.toLowerCase().indexOf("notification") != -1) {
+        var finalSubject = "[Notificacion] " + subject + " - " + AdWordsApp.currentAccount().getName() + " (" + AdWordsApp.currentAccount().getCustomerId() + ")"
+    }
+
+    var finalBody = body;
+
+    MailApp.sendEmail({
+        to: emailAddresses,
+        subject: finalSubject,
+        htmlBody: finalBody
+    });
+
+    if (DEBUG == 1) Logger.log("email enviado " + emailAddresses + ": " + finalSubject);
+
+}
+
+
+
+function process() {
+    Logger.log("Listando " + AdWordsApp.currentAccount().getName() + " - ID:" + AdWordsApp.currentAccount().getCustomerId() + " .");
+
+var dateRange = getDateRangeYesterdayToToday();
+    var currentDate = new Date();
+
+    var queryText = "SELECT " + METRICA + ", DayOfWeek, HourOfDay FROM ACCOUNT_PERFORMANCE_REPORT DURING " + dateRange;
+    var result = AdWordsApp.report(queryText);
+    var rows = result.rows();
+
+    var daysMapping = [];
+    daysMapping["Sunday"] = 0;
+    daysMapping["Monday"] = 1;
+    daysMapping["Tuesday"] = 2;
+    daysMapping["Wednesday"] = 3;
+    daysMapping["Thursday"] = 4;
+    daysMapping["Friday"] = 5;
+    daysMapping["Saturday"] = 6;
+
+    var impressionsByHour = {};
+
+    while (rows.hasNext()) {
+        var currentRow = rows.next();
+        var dayFactor = daysMapping[currentRow["DayOfWeek"]];
+        var hourFactor = parseFloat(currentRow["HourOfDay"]);
+        var actualHour = dayFactor * 24 + hourFactor;
+        if (DEBUG) Logger.log(dayFactor + "," + hourFactor + " => " + currentRow["Impressions"]);
+        impressionsByHour[actualHour] = currentRow["Impressions"];
+    }
+
+    // check if an entry exists for any of the last 6 hours
+    var foundEntry = false;
+    var numHoursToCheck = HORAS_A_COMPROBAR + 1;
+    for (var i = 1; i < numHoursToCheck; i++) {
+        var tempDate = new Date(currentDate.getTime());
+        tempDate.setHours(tempDate.getHours() - i);
+        var hourIndexToCheck = tempDate.getDay() * 24 + tempDate.getHours();
+        if (impressionsByHour[hourIndexToCheck] != undefined && impressionsByHour[hourIndexToCheck] != 0) {
+            foundEntry = true;
+            break;
+        }
+    }
+
+    if (foundEntry) {
+        Logger.log("Correcto! Todo correcto en las últimas " + HORAS_A_COMPROBAR + " horas.");
+    } else {
+        var subject = "Cuenta detenida - Sin Impresiones en " + AdWordsApp.currentAccount().getName() + " - ID:" + AdWordsApp.currentAccount().getCustomerId();
+        var body = "La cuenta de Google Ads " + AdWordsApp.currentAccount().getName() + " (" + AdWordsApp.currentAccount().getCustomerId() + ")  No ha registrado impresiones en las últimas " + HORAS_A_COMPROBAR + " horas.";
+        sendEmailNotifications(EMAIL_NOTIFICACION, subject, body, "warning");
+        Logger.log("Peligro: La cuenta parece inactiva en las últimas " + HORAS_A_COMPROBAR + " horas.");
+    }
+  
+  
+}
+
+function done(){
+    Logger.log("Finalizado");
+}
+
+function main() {
+ 
+  
+    var accountIterator = MccApp.accounts()
+    .withCondition("Impressions > 10")
+     .forDateRange("LAST_7_DAYS");
+    accountIterator.executeInParallel("process","done");
+  }
