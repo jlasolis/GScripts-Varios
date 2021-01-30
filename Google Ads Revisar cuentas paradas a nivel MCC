@@ -84,7 +84,7 @@ var dateRange = getDateRangeYesterdayToToday();
         impressionsByHour[actualHour] = currentRow["Impressions"];
     }
 
-    // check if an entry exists for any of the last 6 hours
+   // check if an entry exists for any of the last 6 hours
     var foundEntry = false;
     var numHoursToCheck = HORAS_A_COMPROBAR + 1;
     for (var i = 1; i < numHoursToCheck; i++) {
@@ -100,8 +100,10 @@ var dateRange = getDateRangeYesterdayToToday();
     if (foundEntry) {
         Logger.log("Correcto! Todo correcto en las últimas " + HORAS_A_COMPROBAR + " horas.");
     } else {
-        var subject = "Cuenta detenida - Sin Impresiones en " + AdWordsApp.currentAccount().getName() + " - ID:" + AdWordsApp.currentAccount().getCustomerId();
-        var body = "La cuenta de Google Ads " + AdWordsApp.currentAccount().getName() + " (" + AdWordsApp.currentAccount().getCustomerId() + ")  No ha registrado impresiones en las últimas " + HORAS_A_COMPROBAR + " horas.";
+        var subject = "Cuenta detenida - Sin Impresiones en " + AdWordsApp.currentAccount().getName() + 
+        " - ID:" + AdWordsApp.currentAccount().getCustomerId();
+        var body = "La cuenta de Google Ads " + AdWordsApp.currentAccount().getName() + 
+        " (" + AdWordsApp.currentAccount().getCustomerId() + ")  \n No ha registrado impresiones en las últimas " + HORAS_A_COMPROBAR + " horas, en los 7 días anteriores tuvo " + AdWordsApp.currentAccount().getStatsFor("LAST_7_DAYS").getImpressions()+" Impresiones.";
         sendEmailNotifications(EMAIL_NOTIFICACION, subject, body, "warning");
         Logger.log("Peligro: La cuenta parece inactiva en las últimas " + HORAS_A_COMPROBAR + " horas.");
     }
@@ -118,6 +120,7 @@ function main() {
   
     var accountIterator = MccApp.accounts()
     .withCondition("Impressions > 10")
-     .forDateRange("LAST_7_DAYS");
+     .forDateRange("LAST_7_DAYS")
+    .orderBy("Impressions", "ASC");
     accountIterator.executeInParallel("process","done");
   }
