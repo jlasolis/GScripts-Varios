@@ -107,8 +107,8 @@ var dateRange = getDateRangeYesterdayToToday();
     if (foundEntry) {
         Logger.log("Correcto! Todo correcto en las últimas " + HORAS_A_COMPROBAR + " horas.");
     } else {
-        var subject = "Cuenta detenida - Sin Impresiones en " + AdWordsApp.currentAccount().getName() + 
-        " - ID:" + AdWordsApp.currentAccount().getCustomerId();
+        var subject = "Cuenta detenida "+ AdWordsApp.currentAccount().getName()+" - Sin Impresiones - ID: "  + 
+         AdWordsApp.currentAccount().getCustomerId();
         var body = "La cuenta de Google Ads " + AdWordsApp.currentAccount().getName() + 
         " (" + AdWordsApp.currentAccount().getCustomerId() + ")  \n No ha registrado impresiones en las últimas " + HORAS_A_COMPROBAR + " horas, en los 7 días anteriores tuvo " + AdWordsApp.currentAccount().getStatsFor("LAST_7_DAYS").getImpressions()+" Impresiones.";
         sendEmailNotifications(EMAIL_NOTIFICACION, subject, body, "warning");
