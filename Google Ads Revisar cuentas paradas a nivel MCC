@@ -5,7 +5,7 @@ Este Script revisa las cuentas a nivel MCC que han tenido impresiones en los úl
 Con esas cuentas comprueba que tengan actividad en las últimas 6 horas (configurable)
 y envía un email de notificación.
 
-Backlog:
+Backlog (cosas pendientes para mejorar):
 - Implementar que vigile/ignore según etiquetas
 - Implementar que ignore ciertos IDs
 
