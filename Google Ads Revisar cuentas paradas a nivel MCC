@@ -8,7 +8,7 @@ y envía un email de notificación.
 
 */
 
-var EMAIL_NOTIFICACION = "jorge@clicaonline.com";
+var EMAIL_NOTIFICACION = "mail@example.com";
 var HORAS_A_COMPROBAR = 6;
 var METRICA ="Impressions";
 
