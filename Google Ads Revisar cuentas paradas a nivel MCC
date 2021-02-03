@@ -15,9 +15,15 @@ Actualizado 2/2/2021 @jlasolis
 
 */
 
+/* Variables a Configurar */
+
 var EMAIL_NOTIFICACION = "mail@example.com";
 var HORAS_A_COMPROBAR = 6;
 var METRICA ="Impressions";
+
+
+/* Fin Variables a Configurar */
+
 
 var DEBUG = 0;
 
